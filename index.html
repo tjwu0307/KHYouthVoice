@@ -6,7 +6,7 @@
     <title>青年創意平台 - 提案與附議</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+TC:wght@300;400;500;700&family=Oxanium:wght@200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+TC:wght@300;400;500;700&family=Oxanium:wght@200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,100&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 由於外部腳本可能被阻擋，我們將直接使用表情符號（Emojis）來代替圖示 -->
     <!-- <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> -->
@@ -283,10 +283,21 @@
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // 全域變數由我們的開發環境提供，用於 Firebase 專案設定和認證。
-        // 當程式碼在其他環境中執行時，這些變數將不存在，導致初始化失敗。
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        // 我們將其寫成一個函數，以確保它在初始化時能正確讀取。
+        const getFirebaseConfig = () => {
+            try {
+                if (typeof __firebase_config !== 'undefined') {
+                    return JSON.parse(__firebase_config);
+                }
+            } catch (error) {
+                console.error("Error parsing __firebase_config:", error);
+            }
+            // 如果無法獲取或解析，則返回一個空物件或預設配置
+            return {};
+        };
+        const firebaseConfig = getFirebaseConfig();
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         let db, auth, userId = null; // Initialize userId to null
 
@@ -331,234 +342,242 @@
         }
 
         // Initialize Firebase and Authentication
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
 
-        // Sign in user using the provided token or anonymously
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                authButton.textContent = '登出';
-                userIdDisplay.textContent = `你的ID: ${userId}`;
-                userIdDisplay.classList.remove('hidden');
-            } else {
-                userId = null;
-                authButton.textContent = '登入';
-                userIdDisplay.classList.add('hidden');
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        // User is not authenticated. Keep login button active.
-                    }
-                } catch (error) {
-                    console.error("Firebase Auth error: ", error);
-                    showMessage(`自動登入失敗: ${error.message}`);
-                }
-            }
-        });
-
-        // Event listener for auth button (Google sign in/out)
-        authButton.addEventListener('click', async () => {
-            if (auth.currentUser) {
-                // User is signed in, so sign them out
-                await signOut(auth);
-                showMessage('已成功登出');
-            } else {
-                // User is signed out, so sign them in
-                const provider = new GoogleAuthProvider();
-                try {
-                    await signInWithPopup(auth, provider);
-                    showMessage('成功使用 Google 帳號登入！');
-                } catch (error) {
-                    console.error("Google Sign-In error: ", error);
-                    if (error.code === 'auth/popup-blocked') {
-                        showMessage('登入失敗：您的瀏覽器阻擋了彈出視窗。請允許此網站的彈出視窗並重試。');
-                    } else {
-                        showMessage(`Google 登入失敗: ${error.message}`);
-                    }
-                }
-            }
-        });
-
-        // Event listeners for UI navigation
-        startProposalButton.addEventListener('click', () => {
-            if (auth.currentUser) {
-                proposalModal.style.display = 'block';
-            } else {
-                showMessage('請先登入才能提交提案。');
-            }
-        });
-
-        browseProposalsButton.addEventListener('click', () => {
-            showSection('proposals-list-section');
-        });
-
-        backToHomeButton.addEventListener('click', () => {
-            showSection('main-section');
-        });
-
-        closeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                proposalModal.style.display = 'none';
-                detailModal.style.display = 'none';
-            });
-        });
-
-        window.onclick = function(event) {
-            if (event.target == proposalModal) {
-                proposalModal.style.display = 'none';
-            }
-            if (event.target == detailModal) {
-                detailModal.style.display = 'none';
-            }
-        };
-
-        // Handle proposal form submission
-        proposalForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const title = document.getElementById('proposal-title').value;
-            const description = document.getElementById('proposal-description').value;
-            const goal = parseInt(document.getElementById('proposal-goal').value, 10);
-
-            if (!title || !description || isNaN(goal)) {
-                showMessage('請填寫所有欄位');
-                return;
-            }
-
-            if (!auth.currentUser) {
-                showMessage('請先登入才能提交提案。');
-                return;
-            }
-
-            try {
-                const proposalsRef = collection(db, `/artifacts/${appId}/public/data/proposals`);
-                await addDoc(proposalsRef, {
-                    title,
-                    description,
-                    goal,
-                    endorsers: [],
-                    authorId: auth.currentUser.uid,
-                    createdAt: serverTimestamp(),
-                    status: '進行中'
-                });
-                showMessage('提案已成功提交！');
-                proposalForm.reset();
-                proposalModal.style.display = 'none';
-            } catch (error) {
-                console.error("Error submitting proposal: ", error);
-                showMessage(`提交提案失敗: ${error.message}`);
-            }
-        });
-
-        // Fetch and display proposals in real-time
-        const proposalsRef = collection(db, `/artifacts/${appId}/public/data/proposals`);
-        onSnapshot(proposalsRef, (snapshot) => {
-            proposalsGrid.innerHTML = '';
-            snapshot.forEach((doc) => {
-                const proposal = doc.data();
-                const proposalId = doc.id;
-                const endorserCount = proposal.endorsers.length;
-                const progressPercentage = (endorserCount / proposal.goal) * 100;
-                const isEndorsed = proposal.endorsers.includes(userId);
-                const endorsementText = isEndorsed ? '已附議' : '附議';
-                const endorsementDisabled = isEndorsed || !userId;
-
-                const proposalCard = `
-                    <div class="rounded-lg bg-white text-card-foreground shadow-sm text-center bubble-shadow proposal-card border-2 p-6 flex flex-col justify-between" data-id="${proposalId}">
-                        <div>
-                            <h3 class="font-bold text-foreground mb-2 text-lg">${proposal.title}</h3>
-                            <p class="text-sm text-muted-foreground leading-relaxed">${proposal.description.substring(0, 100)}...</p>
-                            <p class="text-xs text-gray-500 mt-2">提案者ID: ${proposal.authorId.substring(0, 8)}...</p>
-                        </div>
-                        <div class="mt-4">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm font-semibold text-gray-700">附議進度</span>
-                                <span class="text-sm font-semibold">${endorserCount}/${proposal.goal}</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${Math.min(progressPercentage, 100)}%;"></div>
-                            </div>
-                            <div class="mt-4">
-                                <span class="mt-2 text-sm text-gray-500 block">案件狀態: ${proposal.status}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                proposalsGrid.innerHTML += proposalCard;
-            });
-
-            // Attach event listeners to proposal cards to open the detail modal
-            document.querySelectorAll('.proposal-card').forEach(card => {
-                card.addEventListener('click', async (e) => {
-                    const proposalId = e.currentTarget.dataset.id;
-                    const proposalDocRef = doc(db, `/artifacts/${appId}/public/data/proposals/${proposalId}`);
-                    const proposalSnap = await getDoc(proposalDocRef);
-                    const proposal = proposalSnap.data();
-
-                    if (proposal) {
-                        const endorserCount = proposal.endorsers.length;
-                        const progressPercentage = (endorserCount / proposal.goal) * 100;
-                        const isEndorsed = proposal.endorsers.includes(userId);
-                        const isAuthor = proposal.authorId === userId;
-
-                        document.getElementById('detail-title').textContent = proposal.title;
-                        document.getElementById('detail-author').textContent = `提案者ID: ${proposal.authorId}`;
-                        document.getElementById('detail-description').textContent = proposal.description;
-                        document.getElementById('detail-endorsement-count').textContent = `${endorserCount}/${proposal.goal}`;
-                        document.getElementById('detail-progress-fill').style.width = `${Math.min(progressPercentage, 100)}%`;
-
-                        const endorseButton = document.getElementById('detail-endorse-button');
-                        endorseButton.dataset.id = proposalId;
-                        endorseButton.textContent = isEndorsed ? '已附議' : '附議此提案';
-                        endorseButton.disabled = isEndorsed || !userId;
-
-                        const statusButton = document.getElementById('detail-status-button');
-                        if (isAuthor) {
-                             statusButton.style.display = 'block';
-                             statusButton.textContent = `案件狀態: ${proposal.status}`;
-                             statusButton.addEventListener('click', async () => {
-                                 const currentStatus = proposal.status;
-                                 let newStatus = '進行中';
-                                 if (currentStatus === '進行中') newStatus = '已達標';
-                                 if (currentStatus === '已達標') newStatus = '已執行';
-                                 if (currentStatus === '已執行') newStatus = '進行中';
-                                 
-                                 await updateDoc(proposalDocRef, { status: newStatus });
-                                 showMessage(`案件狀態已更新為: ${newStatus}`);
-                             }, { once: true }); // Prevent multiple listeners
+            // Sign in user using the provided token or anonymously
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    authButton.textContent = '登出';
+                    userIdDisplay.textContent = `你的ID: ${userId}`;
+                    userIdDisplay.classList.remove('hidden');
+                } else {
+                    userId = null;
+                    authButton.textContent = '登入';
+                    userIdDisplay.classList.add('hidden');
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
                         } else {
-                            statusButton.style.display = 'none';
+                            // User is not authenticated. Keep login button active.
                         }
-                        
-                        detailModal.style.display = 'block';
+                    } catch (error) {
+                        console.error("Firebase Auth error: ", error);
+                        showMessage(`自動登入失敗: ${error.message}`);
                     }
+                }
+            });
+
+            // Event listener for auth button (Google sign in/out)
+            authButton.addEventListener('click', async () => {
+                if (auth.currentUser) {
+                    // User is signed in, so sign them out
+                    await signOut(auth);
+                    showMessage('已成功登出');
+                } else {
+                    // User is signed out, so sign them in
+                    const provider = new GoogleAuthProvider();
+                    try {
+                        await signInWithPopup(auth, provider);
+                        showMessage('成功使用 Google 帳號登入！');
+                    } catch (error) {
+                        console.error("Google Sign-In error: ", error);
+                        if (error.code === 'auth/popup-blocked') {
+                            showMessage('登入失敗：您的瀏覽器阻擋了彈出視窗。請允許此網站的彈出視窗並重試。');
+                        } else {
+                            showMessage(`Google 登入失敗: ${error.message}`);
+                        }
+                    }
+                }
+            });
+
+            // Event listeners for UI navigation
+            startProposalButton.addEventListener('click', () => {
+                if (auth.currentUser) {
+                    proposalModal.style.display = 'block';
+                } else {
+                    showMessage('請先登入才能提交提案。');
+                }
+            });
+
+            browseProposalsButton.addEventListener('click', () => {
+                showSection('proposals-list-section');
+            });
+
+            backToHomeButton.addEventListener('click', () => {
+                showSection('main-section');
+            });
+
+            closeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    proposalModal.style.display = 'none';
+                    detailModal.style.display = 'none';
                 });
             });
 
-            // Attach endorsement listener for the detail modal
-            document.getElementById('detail-endorse-button').addEventListener('click', async (e) => {
-                if (!userId) {
-                    showMessage('請先登入才能進行附議。');
+            window.onclick = function(event) {
+                if (event.target == proposalModal) {
+                    proposalModal.style.display = 'none';
+                }
+                if (event.target == detailModal) {
+                    detailModal.style.display = 'none';
+                }
+            };
+
+            // Handle proposal form submission
+            proposalForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const title = document.getElementById('proposal-title').value;
+                const description = document.getElementById('proposal-description').value;
+                const goal = parseInt(document.getElementById('proposal-goal').value, 10);
+
+                if (!title || !description || isNaN(goal)) {
+                    showMessage('請填寫所有欄位');
                     return;
                 }
 
-                const proposalId = e.target.dataset.id;
-                const proposalDocRef = doc(db, `/artifacts/${appId}/public/data/proposals/${proposalId}`);
-                const proposalSnap = await getDoc(proposalDocRef);
-                const proposalData = proposalSnap.data();
-                const endorsers = proposalData.endorsers || [];
+                if (!auth.currentUser) {
+                    showMessage('請先登入才能提交提案。');
+                    return;
+                }
 
-                if (endorsers.includes(userId)) {
-                    showMessage('您已經附議過這個提案了。');
-                } else {
-                    endorsers.push(userId);
-                    await updateDoc(proposalDocRef, { endorsers: endorsers });
-                    showMessage('感謝您的附議！');
+                try {
+                    const proposalsRef = collection(db, `/artifacts/${appId}/public/data/proposals`);
+                    await addDoc(proposalsRef, {
+                        title,
+                        description,
+                        goal,
+                        endorsers: [],
+                        authorId: auth.currentUser.uid,
+                        createdAt: serverTimestamp(),
+                        status: '進行中'
+                    });
+                    showMessage('提案已成功提交！');
+                    proposalForm.reset();
+                    proposalModal.style.display = 'none';
+                } catch (error) {
+                    console.error("Error submitting proposal: ", error);
+                    showMessage(`提交提案失敗: ${error.message}`);
                 }
             });
-        });
+
+            // Fetch and display proposals in real-time
+            const proposalsRef = collection(db, `/artifacts/${appId}/public/data/proposals`);
+            onSnapshot(proposalsRef, (snapshot) => {
+                proposalsGrid.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const proposal = doc.data();
+                    const proposalId = doc.id;
+                    const endorserCount = proposal.endorsers.length;
+                    const progressPercentage = (endorserCount / proposal.goal) * 100;
+                    const isEndorsed = proposal.endorsers.includes(userId);
+                    const endorsementText = isEndorsed ? '已附議' : '附議';
+                    const endorsementDisabled = isEndorsed || !userId;
+
+                    const proposalCard = `
+                        <div class="rounded-lg bg-white text-card-foreground shadow-sm text-center bubble-shadow proposal-card border-2 p-6 flex flex-col justify-between" data-id="${proposalId}">
+                            <div>
+                                <h3 class="font-bold text-foreground mb-2 text-lg">${proposal.title}</h3>
+                                <p class="text-sm text-muted-foreground leading-relaxed">${proposal.description.substring(0, 100)}...</p>
+                                <p class="text-xs text-gray-500 mt-2">提案者ID: ${proposal.authorId.substring(0, 8)}...</p>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-semibold text-gray-700">附議進度</span>
+                                    <span class="text-sm font-semibold">${endorserCount}/${proposal.goal}</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${Math.min(progressPercentage, 100)}%;"></div>
+                                </div>
+                                <div class="mt-4">
+                                    <span class="mt-2 text-sm text-gray-500 block">案件狀態: ${proposal.status}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    proposalsGrid.innerHTML += proposalCard;
+                });
+
+                // Attach event listeners to proposal cards to open the detail modal
+                document.querySelectorAll('.proposal-card').forEach(card => {
+                    card.addEventListener('click', async (e) => {
+                        const proposalId = e.currentTarget.dataset.id;
+                        const proposalDocRef = doc(db, `/artifacts/${appId}/public/data/proposals/${proposalId}`);
+                        const proposalSnap = await getDoc(proposalDocRef);
+                        const proposal = proposalSnap.data();
+
+                        if (proposal) {
+                            const endorserCount = proposal.endorsers.length;
+                            const progressPercentage = (endorserCount / proposal.goal) * 100;
+                            const isEndorsed = proposal.endorsers.includes(userId);
+                            const isAuthor = proposal.authorId === userId;
+
+                            document.getElementById('detail-title').textContent = proposal.title;
+                            document.getElementById('detail-author').textContent = `提案者ID: ${proposal.authorId}`;
+                            document.getElementById('detail-description').textContent = proposal.description;
+                            document.getElementById('detail-endorsement-count').textContent = `${endorserCount}/${proposal.goal}`;
+                            document.getElementById('detail-progress-fill').style.width = `${Math.min(progressPercentage, 100)}%`;
+
+                            const endorseButton = document.getElementById('detail-endorse-button');
+                            endorseButton.dataset.id = proposalId;
+                            endorseButton.textContent = isEndorsed ? '已附議' : '附議此提案';
+                            endorseButton.disabled = isEndorsed || !userId;
+
+                            const statusButton = document.getElementById('detail-status-button');
+                            if (isAuthor) {
+                                 statusButton.style.display = 'block';
+                                 statusButton.textContent = `案件狀態: ${proposal.status}`;
+                                 statusButton.addEventListener('click', async () => {
+                                     const currentStatus = proposal.status;
+                                     let newStatus = '進行中';
+                                     if (currentStatus === '進行中') newStatus = '已達標';
+                                     if (currentStatus === '已達標') newStatus = '已執行';
+                                     if (currentStatus === '已執行') newStatus = '進行中';
+                                     
+                                     await updateDoc(proposalDocRef, { status: newStatus });
+                                     showMessage(`案件狀態已更新為: ${newStatus}`);
+                                 }, { once: true }); // Prevent multiple listeners
+                            } else {
+                                statusButton.style.display = 'none';
+                            }
+                            
+                            detailModal.style.display = 'block';
+                        }
+                    });
+                });
+
+                // Attach endorsement listener for the detail modal
+                document.getElementById('detail-endorse-button').addEventListener('click', async (e) => {
+                    if (!userId) {
+                        showMessage('請先登入才能進行附議。');
+                        return;
+                    }
+
+                    const proposalId = e.target.dataset.id;
+                    const proposalDocRef = doc(db, `/artifacts/${appId}/public/data/proposals/${proposalId}`);
+                    const proposalSnap = await getDoc(proposalDocRef);
+                    const proposalData = proposalSnap.data();
+                    const endorsers = proposalData.endorsers || [];
+
+                    if (endorsers.includes(userId)) {
+                        showMessage('您已經附議過這個提案了。');
+                    } else {
+                        endorsers.push(userId);
+                        await updateDoc(proposalDocRef, { endorsers: endorsers });
+                        showMessage('感謝您的附議！');
+                    }
+                });
+            });
+        } catch (error) {
+            console.error("Failed to initialize Firebase:", error);
+            // This is a last resort fallback message
+            document.addEventListener('DOMContentLoaded', () => {
+                showMessage(`應用程式載入失敗: ${error.message}，請聯絡開發人員。`);
+            });
+        }
     </script>
 </body>
 </html>
