@@ -283,31 +283,11 @@
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // 全域變數由我們的開發環境提供，用於 Firebase 專案設定和認證。
-        // 我們將其寫成一個函數，以確保它在初始化時能正確讀取。
-        const getFirebaseConfig = () => {
-            try {
-                if (typeof __firebase_config !== 'undefined') {
-                    // 如果環境變數存在，優先使用
-                    return JSON.parse(__firebase_config);
-                }
-            } catch (error) {
-                console.error("Error parsing __firebase_config:", error);
-            }
-            // 如果無法獲取或解析，則返回一個預設配置以防止應用程式崩潰
-            return {
-                apiKey: "dummy-api-key",
-                authDomain: "dummy-project-id.firebaseapp.com",
-                projectId: "dummy-project-id",
-                storageBucket: "dummy-project-id.appspot.com",
-                messagingSenderId: "1234567890",
-                appId: "1:1234567890:web:abcdef1234567890"
-            };
-        };
-        const firebaseConfig = getFirebaseConfig();
+        const firebaseConfig = JSON.parse(__firebase_config);
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        let db, auth, userId = null; // Initialize userId to null
+        let db, auth, userId = null;
 
         // UI elements
         const authButton = document.getElementById('auth-button');
@@ -538,7 +518,8 @@
                             if (isAuthor) {
                                  statusButton.style.display = 'block';
                                  statusButton.textContent = `案件狀態: ${proposal.status}`;
-                                 statusButton.addEventListener('click', async () => {
+                                 // Add a one-time listener for the status button
+                                 const newStatusListener = async () => {
                                      const currentStatus = proposal.status;
                                      let newStatus = '進行中';
                                      if (currentStatus === '進行中') newStatus = '已達標';
@@ -547,7 +528,11 @@
                                      
                                      await updateDoc(proposalDocRef, { status: newStatus });
                                      showMessage(`案件狀態已更新為: ${newStatus}`);
-                                 }, { once: true }); // Prevent multiple listeners
+                                     // Remove the listener after it's been used to prevent multiple executions
+                                     statusButton.removeEventListener('click', newStatusListener);
+                                 };
+                                 // Attach the new listener
+                                 statusButton.addEventListener('click', newStatusListener);
                             } else {
                                 statusButton.style.display = 'none';
                             }
