@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+    <title>青年創意平台 - 提案與附議</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+TC:wght@300;400;500;700&family=Oxanium:wght@200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 由於外部腳本可能被阻擋，我們將直接使用表情符號（Emojis）來代替圖示 -->
+    <!-- <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f7fafc;
+        }
+
+        .handwriting {
+            font-family: 'Architects Daughter', cursive;
+        }
+
+        .comic-gradient {
+            background-image: linear-gradient(135deg, #FF6B6B, #FFD700, #4AD9A1, #5B86E5, #9B59B6);
+        }
+
+        .text-gradient {
+            background-image: linear-gradient(45deg, #FF6B6B, #FFD700, #4AD9A1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .comic-button {
+            border-radius: 9999px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .comic-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+        }
+
+        .bubble-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .proposal-card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            cursor: pointer;
+        }
+
+        .proposal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease-in-out;
+            background-color: #4CAF50; /* Green color for progress */
+            border-radius: 9999px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex flex-col">
+    <header class="bg-card shadow-sm border-b border-border z-50 sticky top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+                        <!-- 使用表情符號來代替 Font Awesome 圖示 -->
+                        <span role="img" aria-label="lightbulb" class="text-sm">💡</span>
+                    </div>
+                    <span class="text-xl font-bold text-foreground">青年創意平台</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="user-id-display" class="hidden text-sm md:text-base font-mono bg-gray-100 p-2 rounded-lg"></span>
+                    <button id="auth-button" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 h-10 px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700">登入</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow">
+        <!-- Main welcome section -->
+        <section id="main-section" class="comic-gradient text-white py-12 md:py-20 relative overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 text-white drop-shadow-lg">讓你的創意改變世界</h1>
+                <p class="text-lg md:text-xl text-white/95 mb-8 max-w-2xl mx-auto font-medium">專為12-18歲青年打造的創意提案平台，將你的想法轉化為實際行動</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button id="start-proposal-button" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 comic-button bg-white text-gray-900 hover:bg-gray-100 text-lg px-8 py-3">💡 開始提案</button>
+                    <button id="browse-proposals-button" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 comic-button bg-white text-gray-900 hover:bg-gray-100 text-lg px-8 py-3">🔍 瀏覽提案</button>
+                </div>
+            </div>
+            <div class="absolute top-10 left-10 w-16 h-16 bg-white/20 rounded-full blur-xl"></div>
+            <div class="absolute bottom-10 right-10 w-24 h-24 bg-white/15 rounded-full blur-2xl"></div>
+        </section>
+
+        <!-- How it works section -->
+        <section class="py-16 bg-muted/30 relative">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-4 handwriting text-4xl" data-testid="text-features-title">如何運作？</h2>
+                    <p class="text-lg text-muted-foreground font-medium" data-testid="text-features-subtitle">簡單五步驟，將你的想法變成改變</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <div class="rounded-lg bg-card text-card-foreground shadow-sm text-center bubble-shadow proposal-card border-2" data-testid="card-step-1">
+                        <div class="p-6 relative">
+                            <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl shadow-lg" style="background-color: rgb(245, 86, 211);">💡</div>
+                            <div class="text-2xl font-bold mb-2 handwriting" style="color: rgb(245, 86, 211);">1</div>
+                            <h3 class="font-bold text-foreground mb-2 text-lg">提議</h3>
+                            <p class="text-sm text-muted-foreground leading-relaxed">提出你的創意想法</p>
+                        </div>
+                    </div>
+                    <div class="rounded-lg bg-card text-card-foreground shadow-sm text-center bubble-shadow proposal-card border-2" data-testid="card-step-2">
+                        <div class="p-6 relative">
+                            <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl shadow-lg" style="background-color: rgb(255, 217, 102);">🔍</div>
+                            <div class="text-2xl font-bold mb-2 handwriting" style="color: rgb(255, 217, 102);">2</div>
+                            <h3 class="font-bold text-foreground mb-2 text-lg">檢核</h3>
+                            <p class="text-sm text-muted-foreground leading-relaxed">專家審核提案內容</p>
+                        </div>
+                    </div>
+                    <div class="rounded-lg bg-card text-card-foreground shadow-sm text-center bubble-shadow proposal-card border-2" data-testid="card-step-3">
+                        <div class="p-6 relative">
+                            <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl shadow-lg" style="background-color: rgb(77, 210, 255);">🙋&zwj;♀️</div>
+                            <div class="text-2xl font-bold mb-2 handwriting" style="color: rgb(77, 210, 255);">3</div>
+                            <h3 class="font-bold text-foreground mb-2 text-lg">附議</h3>
+                            <p class="text-sm text-muted-foreground leading-relaxed">收集30人支持</p>
+                        </div>
+                    </div>
+                    <div class="rounded-lg bg-card text-card-foreground shadow-sm text-center bubble-shadow proposal-card border-2" data-testid="card-step-4">
+                        <div class="p-6 relative">
+                            <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl shadow-lg" style="background-color: rgb(77, 255, 77);">💬</div>
+                            <div class="text-2xl font-bold mb-2 handwriting" style="color: rgb(77, 255, 77);">4</div>
+                            <h3 class="font-bold text-foreground mb-2 text-lg">回應</h3>
+                            <p class="text-sm text-muted-foreground leading-relaxed">相關單位正式回覆</p>
+                        </div>
+                    </div>
+                    <div class="rounded-lg bg-card text-card-foreground shadow-sm text-center bubble-shadow proposal-card border-2" data-testid="card-step-5">
+                        <div class="p-6 relative">
+                            <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl shadow-lg" style="background-color: rgb(255, 179, 102);">🚀</div>
+                            <div class="text-2xl font-bold mb-2 handwriting" style="color: rgb(255, 179, 102);">5</div>
+                            <h3 class="font-bold text-foreground mb-2 text-lg">執行</h3>
+                            <p class="text-sm text-muted-foreground leading-relaxed">想法變成實際行動</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="absolute top-20 left-1/4 w-8 h-8 bg-primary/20 rounded-full blur-lg"></div>
+            <div class="absolute bottom-20 right-1/4 w-12 h-12 bg-accent/20 rounded-full blur-xl"></div>
+        </section>
+
+        <!-- Proposals List Section -->
+        <section id="proposals-list-section" class="py-16 bg-muted/30 relative hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between mb-12">
+                    <button id="back-to-home-button" class="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium">
+                        <span role="img" aria-label="back arrow">⬅️</span> 回到首頁
+                    </button>
+                    <div class="text-center flex-grow">
+                        <h2 class="text-3xl font-bold mb-4 handwriting text-4xl">所有提案</h2>
+                        <p class="text-lg text-muted-foreground font-medium">看看大家的創意，並給予支持！</p>
+                    </div>
+                </div>
+                <div id="proposals-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Proposal cards will be dynamically inserted here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Proposal Submission Modal -->
+        <div id="proposal-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">&times;</span>
+                <h2 class="text-2xl font-bold mb-4">提交你的新提案</h2>
+                <form id="proposal-form" class="space-y-4">
+                    <div>
+                        <label for="proposal-title" class="block text-sm font-medium text-gray-700">提案標題</label>
+                        <input type="text" id="proposal-title" name="title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="proposal-description" class="block text-sm font-medium text-gray-700">提案內容</label>
+                        <textarea id="proposal-description" name="description" rows="5" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required></textarea>
+                    </div>
+                    <div>
+                        <label for="proposal-goal" class="block text-sm font-medium text-gray-700">附議目標人數 (預設30人)</label>
+                        <input type="number" id="proposal-goal" name="goal" value="30" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                    </div>
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 sm:text-sm">提交提案</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Proposal Detail Modal -->
+        <div id="detail-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" id="detail-modal-close-button">&times;</span>
+                <h2 id="detail-title" class="text-2xl font-bold mb-2"></h2>
+                <p id="detail-author" class="text-sm text-gray-500 mb-4"></p>
+                <div class="p-4 bg-gray-100 rounded-md mb-4">
+                    <p id="detail-description" class="text-gray-700 whitespace-pre-wrap"></p>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-semibold text-gray-700">附議進度</span>
+                        <span id="detail-endorsement-count" class="text-sm font-semibold"></span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="detail-progress-fill" class="progress-fill"></div>
+                    </div>
+                </div>
+                <div class="mt-4 flex flex-col sm:flex-row gap-2">
+                    <button id="detail-endorse-button" class="w-full inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium px-4 py-2 bg-green-500 hover:bg-green-600 text-white disabled:opacity-50">
+                        附議此提案
+                    </button>
+                    <button id="detail-status-button" class="w-full inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50">
+                        案件狀態: 
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-card border-t border-border py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <div class="w-6 h-6 gradient-bg rounded-lg flex items-center justify-center">
+                    <span role="img" aria-label="lightbulb" class="text-xs">💡</span>
+                </div>
+                <span class="text-lg font-bold">青年創意平台</span>
+            </div>
+            <p class="text-sm text-muted-foreground">© 2025 高雄市政府社會局. 版權所有.</p>
+<a class="XqQF9c" href="https://www.facebook.com/kwcyc" target="_blank" style="color: inherit; text-decoration: none;"><span class="C9DxTc aw5Odc " style="font-size: 8.0pt; text-decoration: underline; vertical-align: baseline;">婦幼青少年活動中心</span><span class="C9DxTc aw5Odc " style="font-size: 8.0pt; text-decoration: underline; vertical-align: baseline;">婦幼青少年活動中心Facebook</span></a>        </div>
+    </footer>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 全域變數由我們的開發環境提供，用於 Firebase 專案設定和認證。
+        // 當程式碼在其他環境中執行時，這些變數將不存在，導致初始化失敗。
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId = null; // Initialize userId to null
+
+        // UI elements
+        const authButton = document.getElementById('auth-button');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const mainSection = document.getElementById('main-section');
+        const startProposalButton = document.getElementById('start-proposal-button');
+        const browseProposalsButton = document.getElementById('browse-proposals-button');
+        const backToHomeButton = document.getElementById('back-to-home-button');
+        const proposalsListSection = document.getElementById('proposals-list-section');
+        const proposalsGrid = document.getElementById('proposals-grid');
+        const proposalModal = document.getElementById('proposal-modal');
+        const detailModal = document.getElementById('detail-modal');
+        const closeButtons = document.querySelectorAll('.close-button');
+        const proposalForm = document.getElementById('proposal-form');
+        
+        // Function to show a message in a modal
+        function showMessage(message) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content text-center">
+                    <p class="text-lg font-bold">${message}</p>
+                    <button onclick="this.parentNode.parentNode.style.display='none'" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md">確認</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+        }
+
+        // Function to switch between different sections
+        function showSection(sectionId) {
+            const sections = [mainSection, proposalsListSection];
+            sections.forEach(section => {
+                if (section.id === sectionId) {
+                    section.classList.remove('hidden');
+                } else {
+                    section.classList.add('hidden');
+                }
+            });
+        }
+
+        // Initialize Firebase and Authentication
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // Sign in user using the provided token or anonymously
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                authButton.textContent = '登出';
+                userIdDisplay.textContent = `你的ID: ${userId}`;
+                userIdDisplay.classList.remove('hidden');
+            } else {
+                userId = null;
+                authButton.textContent = '登入';
+                userIdDisplay.classList.add('hidden');
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        // User is not authenticated. Keep login button active.
+                    }
+                } catch (error) {
+                    console.error("Firebase Auth error: ", error);
+                    showMessage(`自動登入失敗: ${error.message}`);
+                }
+            }
+        });
+
+        // Event listener for auth button (Google sign in/out)
+        authButton.addEventListener('click', async () => {
+            if (auth.currentUser) {
+                // User is signed in, so sign them out
+                await signOut(auth);
+                showMessage('已成功登出');
+            } else {
+                // User is signed out, so sign them in
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                    showMessage('成功使用 Google 帳號登入！');
+                } catch (error) {
+                    console.error("Google Sign-In error: ", error);
+                    if (error.code === 'auth/popup-blocked') {
+                        showMessage('登入失敗：您的瀏覽器阻擋了彈出視窗。請允許此網站的彈出視窗並重試。');
+                    } else {
+                        showMessage(`Google 登入失敗: ${error.message}`);
+                    }
+                }
+            }
+        });
+
+        // Event listeners for UI navigation
+        startProposalButton.addEventListener('click', () => {
+            if (auth.currentUser) {
+                proposalModal.style.display = 'block';
+            } else {
+                showMessage('請先登入才能提交提案。');
+            }
+        });
+
+        browseProposalsButton.addEventListener('click', () => {
+            showSection('proposals-list-section');
+        });
+
+        backToHomeButton.addEventListener('click', () => {
+            showSection('main-section');
+        });
+
+        closeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                proposalModal.style.display = 'none';
+                detailModal.style.display = 'none';
+            });
+        });
+
+        window.onclick = function(event) {
+            if (event.target == proposalModal) {
+                proposalModal.style.display = 'none';
+            }
+            if (event.target == detailModal) {
+                detailModal.style.display = 'none';
+            }
+        };
+
+        // Handle proposal form submission
+        proposalForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('proposal-title').value;
+            const description = document.getElementById('proposal-description').value;
+            const goal = parseInt(document.getElementById('proposal-goal').value, 10);
+
+            if (!title || !description || isNaN(goal)) {
+                showMessage('請填寫所有欄位');
+                return;
+            }
+
+            if (!auth.currentUser) {
+                showMessage('請先登入才能提交提案。');
+                return;
+            }
+
+            try {
+                const proposalsRef = collection(db, `/artifacts/${appId}/public/data/proposals`);
+                await addDoc(proposalsRef, {
+                    title,
+                    description,
+                    goal,
+                    endorsers: [],
+                    authorId: auth.currentUser.uid,
+                    createdAt: serverTimestamp(),
+                    status: '進行中'
+                });
+                showMessage('提案已成功提交！');
+                proposalForm.reset();
+                proposalModal.style.display = 'none';
+            } catch (error) {
+                console.error("Error submitting proposal: ", error);
+                showMessage(`提交提案失敗: ${error.message}`);
+            }
+        });
+
+        // Fetch and display proposals in real-time
+        const proposalsRef = collection(db, `/artifacts/${appId}/public/data/proposals`);
+        onSnapshot(proposalsRef, (snapshot) => {
+            proposalsGrid.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const proposal = doc.data();
+                const proposalId = doc.id;
+                const endorserCount = proposal.endorsers.length;
+                const progressPercentage = (endorserCount / proposal.goal) * 100;
+                const isEndorsed = proposal.endorsers.includes(userId);
+                const endorsementText = isEndorsed ? '已附議' : '附議';
+                const endorsementDisabled = isEndorsed || !userId;
+
+                const proposalCard = `
+                    <div class="rounded-lg bg-white text-card-foreground shadow-sm text-center bubble-shadow proposal-card border-2 p-6 flex flex-col justify-between" data-id="${proposalId}">
+                        <div>
+                            <h3 class="font-bold text-foreground mb-2 text-lg">${proposal.title}</h3>
+                            <p class="text-sm text-muted-foreground leading-relaxed">${proposal.description.substring(0, 100)}...</p>
+                            <p class="text-xs text-gray-500 mt-2">提案者ID: ${proposal.authorId.substring(0, 8)}...</p>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-semibold text-gray-700">附議進度</span>
+                                <span class="text-sm font-semibold">${endorserCount}/${proposal.goal}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(progressPercentage, 100)}%;"></div>
+                            </div>
+                            <div class="mt-4">
+                                <span class="mt-2 text-sm text-gray-500 block">案件狀態: ${proposal.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                proposalsGrid.innerHTML += proposalCard;
+            });
+
+            // Attach event listeners to proposal cards to open the detail modal
+            document.querySelectorAll('.proposal-card').forEach(card => {
+                card.addEventListener('click', async (e) => {
+                    const proposalId = e.currentTarget.dataset.id;
+                    const proposalDocRef = doc(db, `/artifacts/${appId}/public/data/proposals/${proposalId}`);
+                    const proposalSnap = await getDoc(proposalDocRef);
+                    const proposal = proposalSnap.data();
+
+                    if (proposal) {
+                        const endorserCount = proposal.endorsers.length;
+                        const progressPercentage = (endorserCount / proposal.goal) * 100;
+                        const isEndorsed = proposal.endorsers.includes(userId);
+                        const isAuthor = proposal.authorId === userId;
+
+                        document.getElementById('detail-title').textContent = proposal.title;
+                        document.getElementById('detail-author').textContent = `提案者ID: ${proposal.authorId}`;
+                        document.getElementById('detail-description').textContent = proposal.description;
+                        document.getElementById('detail-endorsement-count').textContent = `${endorserCount}/${proposal.goal}`;
+                        document.getElementById('detail-progress-fill').style.width = `${Math.min(progressPercentage, 100)}%`;
+
+                        const endorseButton = document.getElementById('detail-endorse-button');
+                        endorseButton.dataset.id = proposalId;
+                        endorseButton.textContent = isEndorsed ? '已附議' : '附議此提案';
+                        endorseButton.disabled = isEndorsed || !userId;
+
+                        const statusButton = document.getElementById('detail-status-button');
+                        if (isAuthor) {
+                             statusButton.style.display = 'block';
+                             statusButton.textContent = `案件狀態: ${proposal.status}`;
+                             statusButton.addEventListener('click', async () => {
+                                 const currentStatus = proposal.status;
+                                 let newStatus = '進行中';
+                                 if (currentStatus === '進行中') newStatus = '已達標';
+                                 if (currentStatus === '已達標') newStatus = '已執行';
+                                 if (currentStatus === '已執行') newStatus = '進行中';
+                                 
+                                 await updateDoc(proposalDocRef, { status: newStatus });
+                                 showMessage(`案件狀態已更新為: ${newStatus}`);
+                             }, { once: true }); // Prevent multiple listeners
+                        } else {
+                            statusButton.style.display = 'none';
+                        }
+                        
+                        detailModal.style.display = 'block';
+                    }
+                });
+            });
+
+            // Attach endorsement listener for the detail modal
+            document.getElementById('detail-endorse-button').addEventListener('click', async (e) => {
+                if (!userId) {
+                    showMessage('請先登入才能進行附議。');
+                    return;
+                }
+
+                const proposalId = e.target.dataset.id;
+                const proposalDocRef = doc(db, `/artifacts/${appId}/public/data/proposals/${proposalId}`);
+                const proposalSnap = await getDoc(proposalDocRef);
+                const proposalData = proposalSnap.data();
+                const endorsers = proposalData.endorsers || [];
+
+                if (endorsers.includes(userId)) {
+                    showMessage('您已經附議過這個提案了。');
+                } else {
+                    endorsers.push(userId);
+                    await updateDoc(proposalDocRef, { endorsers: endorsers });
+                    showMessage('感謝您的附議！');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
