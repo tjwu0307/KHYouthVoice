@@ -334,12 +334,6 @@
 
         // Initialize Firebase and Authentication
         async function initializeAppWithFirebase() {
-            if (!firebaseConfig) {
-                console.error("Firebase config is not defined. The app cannot be initialized.");
-                showMessage('Firebase 設定資訊缺失，應用程式無法初始化。請聯絡開發人員。');
-                return;
-            }
-
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -608,8 +602,13 @@
             }
         }
 
-        // Initialize the app
-        initializeAppWithFirebase();
+        // Initialize the app only if firebaseConfig exists
+        if (firebaseConfig) {
+            initializeAppWithFirebase();
+        } else {
+            showMessage('Firebase 設定資訊缺失，應用程式無法初始化。請聯絡開發人員。');
+            console.error("Firebase config is not defined. The app cannot be initialized.");
+        }
     </script>
 </body>
 </html>
