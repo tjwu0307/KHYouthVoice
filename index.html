@@ -287,13 +287,21 @@
         const getFirebaseConfig = () => {
             try {
                 if (typeof __firebase_config !== 'undefined') {
+                    // 如果環境變數存在，優先使用
                     return JSON.parse(__firebase_config);
                 }
             } catch (error) {
                 console.error("Error parsing __firebase_config:", error);
             }
-            // 如果無法獲取或解析，則返回一個空物件或預設配置
-            return {};
+            // 如果無法獲取或解析，則返回一個預設配置以防止應用程式崩潰
+            return {
+                apiKey: "dummy-api-key",
+                authDomain: "dummy-project-id.firebaseapp.com",
+                projectId: "dummy-project-id",
+                storageBucket: "dummy-project-id.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:abcdef1234567890"
+            };
         };
         const firebaseConfig = getFirebaseConfig();
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
